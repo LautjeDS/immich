@@ -168,7 +168,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root() -> ORJSONResponse:
-    return ORJSONResponse({"message": "Immich ML"})
+    return ORJSONResponse({"message": "Immich ML (Lautje's Fork)", "processImages": settings.process_images, "processText": settings.process_text})
 
 
 @app.get("/ping")
