@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     max_batch_size: MaxBatchSize | None = None
     openvino_precision: ModelPrecision = ModelPrecision.FP32
     rocm_precision: ModelPrecision = ModelPrecision.FP32
+    process_images: bool = True
+    process_text: bool = True
 
     @property
     def device_id(self) -> str:

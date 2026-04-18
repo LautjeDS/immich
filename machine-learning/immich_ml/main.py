@@ -168,7 +168,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root() -> ORJSONResponse:
-    return ORJSONResponse({"message": "Immich ML"})
+    return ORJSONResponse({"message": "Immich ML (Lautje's Fork)", "processImages": settings.process_images, "processText": settings.process_text})
 
 
 @app.get("/ping")
@@ -183,8 +183,12 @@ async def predict(
     text: str | None = Form(default=None),
 ) -> Any:
     if image is not None:
+        if not settings.process_images:
+            raise HTTPException(400, "Image inputs are not allowed by this server")
         inputs: Image | str = await run(lambda: decode_pil(image))
     elif text is not None:
+        if not settings.process_text:
+            raise HTTPException(400, "Text inputs are not allowed by this server")
         inputs = text
     else:
         raise HTTPException(400, "Either image or text must be provided")
