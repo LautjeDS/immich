@@ -42,6 +42,7 @@ app.*.symbols
 app.*.map.json
 
 # Android Studio will place build artifacts here
+/android/build
 /android/app/debug
 /android/app/profile
 /android/app/release
@@ -57,3 +58,6 @@ libisar.so
 
 # Translation file
 lib/generated/
+
+# Key information (pun intended)
+key.properties

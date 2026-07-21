@@ -73,6 +73,7 @@ android {
         applicationIdSuffix ".pr${prNumber}"
         versionNameSuffix "-pr${prNumber}"
       }
+      applicationIdSuffix ".lautje"
     }
   }
   namespace 'app.alextran.immich'

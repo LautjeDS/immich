@@ -8,12 +8,13 @@ import app.alextran.immich.background.BackgroundEngineLock
 import app.alextran.immich.background.BackgroundWorkerApiImpl
 import app.alextran.immich.background.BackgroundWorkerFgHostApi
 import app.alextran.immich.background.BackgroundWorkerLockApi
+import app.alextran.immich.cloudprovider.CloudProviderApi
+import app.alextran.immich.cloudprovider.CloudProviderApiImpl
 import app.alextran.immich.connectivity.ConnectivityApi
 import app.alextran.immich.connectivity.ConnectivityApiImpl
 import app.alextran.immich.core.HttpClientManager
 import app.alextran.immich.core.ImmichPlugin
 import app.alextran.immich.core.NetworkApiPlugin
-import me.albemala.native_video_player.NativeVideoPlayerPlugin
 import app.alextran.immich.images.LocalImageApi
 import app.alextran.immich.images.LocalImagesImpl
 import app.alextran.immich.images.RemoteImageApi
@@ -26,6 +27,7 @@ import app.alextran.immich.sync.NativeSyncApiImpl30
 import app.alextran.immich.viewintent.ViewIntentPlugin
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
+import me.albemala.native_video_player.NativeVideoPlayerPlugin
 
 class MainActivity : FlutterFragmentActivity() {
   override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -61,6 +63,7 @@ class MainActivity : FlutterFragmentActivity() {
 
       BackgroundWorkerFgHostApi.setUp(messenger, BackgroundWorkerApiImpl(ctx))
       ConnectivityApi.setUp(messenger, ConnectivityApiImpl(ctx))
+      CloudProviderApi.setUp(messenger, CloudProviderApiImpl(ctx))
 
       flutterEngine.plugins.add(ViewIntentPlugin())
       flutterEngine.plugins.add(backgroundEngineLockImpl)
