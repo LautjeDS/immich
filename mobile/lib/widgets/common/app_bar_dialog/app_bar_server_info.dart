@@ -45,7 +45,7 @@ class AppBarServerInfo extends HookConsumerWidget {
           if (showVersionWarning) ...[const ServerUpdateNotification(), divider],
           _ServerInfoItem(
             label: "server_info_box_app_version".tr(),
-            text: "${appInfo.value["version"]} build.${appInfo.value["buildNumber"]}",
+            text: "${appInfo.value["version"]} build.${appInfo.value["buildNumber"]} (L)",
           ),
           divider,
           _ServerInfoItem(
