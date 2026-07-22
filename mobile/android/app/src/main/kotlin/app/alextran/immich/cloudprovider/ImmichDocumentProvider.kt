@@ -38,14 +38,14 @@ class ImmichDocumentProvider : DocumentsProvider() {
       add(DocumentsContract.Root.COLUMN_DOCUMENT_ID, ROOT_DOC_ID)
       add(DocumentsContract.Root.COLUMN_TITLE, "Immich")
       add(
-              DocumentsContract.Root.COLUMN_SUMMARY,
-              ImmichCloudRepository.getAccountName() ?: "Cloud Photos"
+        DocumentsContract.Root.COLUMN_SUMMARY,
+        ImmichCloudRepository.getAccountName() ?: "Cloud Photos"
       )
       add(DocumentsContract.Root.COLUMN_ICON, R.mipmap.ic_launcher)
       add(
-              DocumentsContract.Root.COLUMN_FLAGS,
-              DocumentsContract.Root.FLAG_SUPPORTS_SEARCH or
-                      DocumentsContract.Root.FLAG_SUPPORTS_IS_CHILD
+        DocumentsContract.Root.COLUMN_FLAGS,
+        DocumentsContract.Root.FLAG_SUPPORTS_SEARCH or
+          DocumentsContract.Root.FLAG_SUPPORTS_IS_CHILD
       )
       add(DocumentsContract.Root.COLUMN_MIME_TYPES, "image/* video/*")
     }
@@ -67,6 +67,7 @@ class ImmichDocumentProvider : DocumentsProvider() {
           add(DocumentsContract.Document.COLUMN_LAST_MODIFIED, System.currentTimeMillis())
         }
       }
+
       documentId == ALL_PHOTOS_DOC_ID -> {
         result.newRow().apply {
           add(DocumentsContract.Document.COLUMN_DOCUMENT_ID, ALL_PHOTOS_DOC_ID)
@@ -77,6 +78,7 @@ class ImmichDocumentProvider : DocumentsProvider() {
           add(DocumentsContract.Document.COLUMN_LAST_MODIFIED, System.currentTimeMillis())
         }
       }
+
       documentId == ALBUMS_DOC_ID -> {
         result.newRow().apply {
           add(DocumentsContract.Document.COLUMN_DOCUMENT_ID, ALBUMS_DOC_ID)
@@ -87,6 +89,7 @@ class ImmichDocumentProvider : DocumentsProvider() {
           add(DocumentsContract.Document.COLUMN_LAST_MODIFIED, System.currentTimeMillis())
         }
       }
+
       documentId.startsWith(ALBUM_PREFIX) -> {
         val albumId = documentId.removePrefix(ALBUM_PREFIX)
         val albums = ImmichCloudRepository.queryAlbums()
@@ -96,8 +99,8 @@ class ImmichDocumentProvider : DocumentsProvider() {
             add(DocumentsContract.Document.COLUMN_DOCUMENT_ID, documentId)
             add(DocumentsContract.Document.COLUMN_DISPLAY_NAME, album.displayName)
             add(
-                    DocumentsContract.Document.COLUMN_MIME_TYPE,
-                    DocumentsContract.Document.MIME_TYPE_DIR
+              DocumentsContract.Document.COLUMN_MIME_TYPE,
+              DocumentsContract.Document.MIME_TYPE_DIR
             )
             add(DocumentsContract.Document.COLUMN_FLAGS, 0)
             add(DocumentsContract.Document.COLUMN_SIZE, null)
@@ -105,6 +108,7 @@ class ImmichDocumentProvider : DocumentsProvider() {
           }
         }
       }
+
       documentId.startsWith(ASSET_PREFIX) -> {
         val assetId = documentId.removePrefix(ASSET_PREFIX)
         val asset = ImmichCloudRepository.getAssetById(assetId)
@@ -118,9 +122,9 @@ class ImmichDocumentProvider : DocumentsProvider() {
   }
 
   override fun queryChildDocuments(
-          parentDocumentId: String,
-          projection: Array<out String>?,
-          sortOrder: String?
+    parentDocumentId: String,
+    projection: Array<out String>?,
+    sortOrder: String?
   ): Cursor {
     val result = MatrixCursor(resolveDocumentProjection(projection))
 
@@ -143,12 +147,14 @@ class ImmichDocumentProvider : DocumentsProvider() {
           add(DocumentsContract.Document.COLUMN_LAST_MODIFIED, System.currentTimeMillis())
         }
       }
+
       ALL_PHOTOS_DOC_ID -> {
         val queryResult = ImmichCloudRepository.queryAllAssets(pageSize = 500)
         for (asset in queryResult.assets) {
           addAssetRow(result, asset)
         }
       }
+
       ALBUMS_DOC_ID -> {
         val albums = ImmichCloudRepository.queryAlbums()
         for (album in albums) {
@@ -156,8 +162,8 @@ class ImmichDocumentProvider : DocumentsProvider() {
             add(DocumentsContract.Document.COLUMN_DOCUMENT_ID, "$ALBUM_PREFIX${album.id}")
             add(DocumentsContract.Document.COLUMN_DISPLAY_NAME, album.displayName)
             add(
-                    DocumentsContract.Document.COLUMN_MIME_TYPE,
-                    DocumentsContract.Document.MIME_TYPE_DIR
+              DocumentsContract.Document.COLUMN_MIME_TYPE,
+              DocumentsContract.Document.MIME_TYPE_DIR
             )
             add(DocumentsContract.Document.COLUMN_FLAGS, 0)
             add(DocumentsContract.Document.COLUMN_SIZE, null)
@@ -165,11 +171,12 @@ class ImmichDocumentProvider : DocumentsProvider() {
           }
         }
       }
+
       else -> {
         if (parentDocumentId.startsWith(ALBUM_PREFIX)) {
           val albumId = parentDocumentId.removePrefix(ALBUM_PREFIX)
           val queryResult =
-                  ImmichCloudRepository.queryAlbumAssets(albumId = albumId, pageSize = 500)
+            ImmichCloudRepository.queryAlbumAssets(albumId = albumId, pageSize = 500)
           for (asset in queryResult.assets) {
             addAssetRow(result, asset)
           }
@@ -181,9 +188,9 @@ class ImmichDocumentProvider : DocumentsProvider() {
   }
 
   override fun openDocument(
-          documentId: String,
-          mode: String,
-          signal: CancellationSignal?
+    documentId: String,
+    mode: String,
+    signal: CancellationSignal?
   ): ParcelFileDescriptor? {
     if (!documentId.startsWith(ASSET_PREFIX)) return null
     val assetId = documentId.removePrefix(ASSET_PREFIX)
@@ -191,9 +198,9 @@ class ImmichDocumentProvider : DocumentsProvider() {
   }
 
   override fun openDocumentThumbnail(
-          documentId: String,
-          sizeHint: Point,
-          signal: CancellationSignal?
+    documentId: String,
+    sizeHint: Point,
+    signal: CancellationSignal?
   ): AssetFileDescriptor? {
     if (!documentId.startsWith(ASSET_PREFIX)) return null
     val assetId = documentId.removePrefix(ASSET_PREFIX)
@@ -202,15 +209,15 @@ class ImmichDocumentProvider : DocumentsProvider() {
   }
 
   override fun querySearchDocuments(
-          rootId: String,
-          query: String,
-          projection: Array<out String>?
+    rootId: String,
+    query: String,
+    projection: Array<out String>?
   ): Cursor {
     val result = MatrixCursor(resolveDocumentProjection(projection))
     val queryResult = ImmichCloudRepository.queryAllAssets(pageSize = 100)
     for (asset in queryResult.assets) {
       if (asset.mimeType.contains(query, ignoreCase = true) ||
-                      asset.id.contains(query, ignoreCase = true)
+        asset.id.contains(query, ignoreCase = true)
       ) {
         addAssetRow(result, asset)
       }
@@ -223,6 +230,7 @@ class ImmichDocumentProvider : DocumentsProvider() {
       parentDocumentId == ROOT_DOC_ID -> {
         documentId == ALL_PHOTOS_DOC_ID || documentId == ALBUMS_DOC_ID
       }
+
       parentDocumentId == ALL_PHOTOS_DOC_ID -> documentId.startsWith(ASSET_PREFIX)
       parentDocumentId == ALBUMS_DOC_ID -> documentId.startsWith(ALBUM_PREFIX)
       parentDocumentId.startsWith(ALBUM_PREFIX) -> documentId.startsWith(ASSET_PREFIX)
@@ -233,13 +241,13 @@ class ImmichDocumentProvider : DocumentsProvider() {
   private fun addAssetRow(cursor: MatrixCursor, asset: ImmichAsset) {
     val extension = mimeTypeToExtension(asset.mimeType)
     val timestamp =
-            java.time.Instant.ofEpochMilli(asset.dateTakenMillis)
-                    .atZone(java.time.ZoneId.systemDefault())
-                    .toLocalDateTime()
+      java.time.Instant.ofEpochMilli(asset.dateTakenMillis)
+        .atZone(java.time.ZoneId.systemDefault())
+        .toLocalDateTime()
     val displayName =
-            "${if (asset.isImage) "IMG" else "VID"}_${
-      timestamp.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
-    }.$extension"
+      "${if (asset.isImage) "IMG" else "VID"}_${
+        timestamp.format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+      }.$extension"
 
     var flags = DocumentsContract.Document.FLAG_SUPPORTS_THUMBNAIL
     cursor.newRow().apply {
@@ -248,8 +256,8 @@ class ImmichDocumentProvider : DocumentsProvider() {
       add(DocumentsContract.Document.COLUMN_MIME_TYPE, asset.mimeType)
       add(DocumentsContract.Document.COLUMN_FLAGS, flags)
       add(
-              DocumentsContract.Document.COLUMN_SIZE,
-              if (asset.sizeBytes > 0) asset.sizeBytes else null
+        DocumentsContract.Document.COLUMN_SIZE,
+        if (asset.sizeBytes > 0) asset.sizeBytes else null
       )
       add(DocumentsContract.Document.COLUMN_LAST_MODIFIED, asset.dateTakenMillis)
     }
@@ -279,25 +287,25 @@ class ImmichDocumentProvider : DocumentsProvider() {
 
   companion object {
     private val DEFAULT_ROOT_PROJECTION =
-            arrayOf(
-                    DocumentsContract.Root.COLUMN_ROOT_ID,
-                    DocumentsContract.Root.COLUMN_DOCUMENT_ID,
-                    DocumentsContract.Root.COLUMN_TITLE,
-                    DocumentsContract.Root.COLUMN_SUMMARY,
-                    DocumentsContract.Root.COLUMN_ICON,
-                    DocumentsContract.Root.COLUMN_FLAGS,
-                    DocumentsContract.Root.COLUMN_MIME_TYPES
-            )
+      arrayOf(
+        DocumentsContract.Root.COLUMN_ROOT_ID,
+        DocumentsContract.Root.COLUMN_DOCUMENT_ID,
+        DocumentsContract.Root.COLUMN_TITLE,
+        DocumentsContract.Root.COLUMN_SUMMARY,
+        DocumentsContract.Root.COLUMN_ICON,
+        DocumentsContract.Root.COLUMN_FLAGS,
+        DocumentsContract.Root.COLUMN_MIME_TYPES
+      )
 
     private val DEFAULT_DOCUMENT_PROJECTION =
-            arrayOf(
-                    DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                    DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                    DocumentsContract.Document.COLUMN_MIME_TYPE,
-                    DocumentsContract.Document.COLUMN_FLAGS,
-                    DocumentsContract.Document.COLUMN_SIZE,
-                    DocumentsContract.Document.COLUMN_LAST_MODIFIED
-            )
+      arrayOf(
+        DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+        DocumentsContract.Document.COLUMN_MIME_TYPE,
+        DocumentsContract.Document.COLUMN_FLAGS,
+        DocumentsContract.Document.COLUMN_SIZE,
+        DocumentsContract.Document.COLUMN_LAST_MODIFIED
+      )
 
     private fun resolveRootProjection(projection: Array<out String>?): Array<out String> {
       return projection ?: DEFAULT_ROOT_PROJECTION

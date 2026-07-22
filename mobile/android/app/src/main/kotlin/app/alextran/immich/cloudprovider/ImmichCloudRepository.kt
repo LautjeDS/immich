@@ -1,20 +1,26 @@
 package app.alextran.immich.cloudprovider
 
+import android.content.ContentUris
 import android.content.Context
 import android.content.SharedPreferences
 import android.database.sqlite.SQLiteDatabase
+import android.graphics.Bitmap
 import android.graphics.Point
+import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.provider.MediaStore
 import android.util.Log
+import android.util.Size
+import androidx.annotation.RequiresApi
+import androidx.core.content.edit
 import app.alextran.immich.core.HttpClientManager
 import kotlinx.serialization.json.Json
-import java.io.File
-import java.io.IOException
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
-import androidx.core.content.edit
+import java.io.File
+import java.io.IOException
 
 private const val TAG = "ImmichCloudRepo"
 private const val PREFS_NAME = "immich.ssl"
@@ -30,6 +36,7 @@ data class ImmichAsset(
   val sizeBytes: Long,
   val durationMillis: Long,
   val isFavorite: Boolean,
+  val isEdited: Boolean,
   val orientation: Int,
   val isImage: Boolean,
   val localId: String?
@@ -282,7 +289,8 @@ object ImmichCloudRepository {
        r.duration_ms, r.is_favorite,
        COALESCE(e.file_size, 1) AS file_size,
        COALESCE(e.orientation, '0') AS orientation,
-       (SELECT l.id FROM local_asset_entity l WHERE l.checksum = r.checksum LIMIT 1) AS local_id
+       (SELECT l.id FROM local_asset_entity l WHERE l.checksum = r.checksum LIMIT 1) AS local_id,
+       r.is_edited
     FROM remote_asset_entity r
     LEFT JOIN remote_exif_entity e ON e.asset_id = r.id
     WHERE r.visibility = 0 AND r.deleted_at IS NULL
@@ -332,7 +340,8 @@ object ImmichCloudRepository {
        r.duration_ms, r.is_favorite,
        COALESCE(e.file_size, 1) AS file_size,
        COALESCE(e.orientation, '0') AS orientation,
-       (SELECT l.id FROM local_asset_entity l WHERE l.checksum = r.checksum LIMIT 1) AS local_id
+       (SELECT l.id FROM local_asset_entity l WHERE l.checksum = r.checksum LIMIT 1) AS local_id,
+       r.is_edited
     FROM remote_album_asset_entity raa
     JOIN remote_asset_entity r ON r.id = raa.asset_id
     LEFT JOIN remote_exif_entity e ON e.asset_id = r.id
@@ -378,6 +387,7 @@ object ImmichCloudRepository {
     val fileSize = c.getLong(7)
     val orientationStr = c.getString(8)
     val localId = if (c.isNull(9)) null else c.getString(9)
+    val isEdited = c.getInt(10) != 0
 
     val isImage = typeInt == 1
     val orientation = orientationStr.toIntOrNull() ?: 0
@@ -407,6 +417,7 @@ object ImmichCloudRepository {
       sizeBytes = sizeBytes,
       durationMillis = durationMs,
       isFavorite = isFavorite,
+      isEdited = isEdited,
       orientation = orientation,
       isImage = isImage,
       localId = localId
@@ -423,7 +434,8 @@ object ImmichCloudRepository {
        r.duration_ms, r.is_favorite,
        COALESCE(e.file_size, 1) AS file_size,
        COALESCE(e.orientation, '0') AS orientation,
-       (SELECT l.id FROM local_asset_entity l WHERE l.checksum = r.checksum LIMIT 1) AS local_id
+       (SELECT l.id FROM local_asset_entity l WHERE l.checksum = r.checksum LIMIT 1) AS local_id,
+       r.is_edited
     FROM remote_asset_entity r
     LEFT JOIN remote_exif_entity e ON e.asset_id = r.id
     WHERE r.id = ? LIMIT 1
@@ -593,9 +605,32 @@ object ImmichCloudRepository {
   }
 
   fun openMedia(assetId: String): ParcelFileDescriptor? {
+    val asset = getAssetById(assetId)
+    if (asset != null && asset.localId != null && !asset.isEdited) {
+      val localFd = openLocalMedia(asset)
+      if (localFd != null) return localFd
+    }
+
     val url = buildUrl("/assets/$assetId/original") ?: return null
     val request = Request.Builder().url(url).get().build()
     return downloadToTempFile(request, "media_$assetId")
+  }
+
+  private fun openLocalMedia(asset: ImmichAsset): ParcelFileDescriptor? {
+    val localId = asset.localId?.toLongOrNull() ?: return null
+    val baseUri = if (asset.isImage) {
+      MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+    } else {
+      MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+    }
+    val uri = ContentUris.withAppendedId(baseUri, localId)
+    return try {
+      Log.d(TAG, "Opening local media for ${asset.id} (localId: $localId)")
+      appContext.contentResolver.openFileDescriptor(uri, "r")
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to open local media for ${asset.id}", e)
+      null
+    }
   }
 
   private fun downloadToTempFile(request: Request, prefix: String): ParcelFileDescriptor? {
@@ -620,11 +655,55 @@ object ImmichCloudRepository {
   }
 
   fun openPreview(assetId: String, size: Point): ParcelFileDescriptor? {
+    val asset = getAssetById(assetId)
+    if (asset != null && asset.localId != null && !asset.isEdited && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      val localFd = openLocalPreview(asset, size)
+      if (localFd != null) return localFd
+    }
+
     val sizeParam = if (size.x <= 250 && size.y <= 250) "thumbnail" else "preview"
     val url = buildUrl("/assets/$assetId/thumbnail") ?: return null
     val urlWithParams = url.newBuilder().addQueryParameter("size", sizeParam).build()
     val request = Request.Builder().url(urlWithParams).get().build()
     return downloadToParcelFd(request)
+  }
+
+  @RequiresApi(29)
+  private fun openLocalPreview(asset: ImmichAsset, size: Point): ParcelFileDescriptor? {
+    val localId = asset.localId?.toLongOrNull() ?: return null
+    val baseUri = if (asset.isImage) {
+      MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+    } else {
+      MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+    }
+    val uri = ContentUris.withAppendedId(baseUri, localId)
+    return try {
+      Log.d(TAG, "Opening local preview for ${asset.id} (localId: $localId)")
+      val bitmap = appContext.contentResolver.loadThumbnail(uri, Size(size.x, size.y), null)
+      bitmapToParcelFd(bitmap)
+    } catch (e: Exception) {
+      Log.w(TAG, "Failed to open local preview for ${asset.id}", e)
+      null
+    }
+  }
+
+  private fun bitmapToParcelFd(bitmap: Bitmap): ParcelFileDescriptor? {
+    val pipe = ParcelFileDescriptor.createPipe()
+    val readEnd = pipe[0]
+    val writeEnd = pipe[1]
+
+    Thread {
+      try {
+        ParcelFileDescriptor.AutoCloseOutputStream(writeEnd).use { output ->
+          bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+        }
+      } catch (e: Exception) {
+        Log.e(TAG, "Failed to compress bitmap to pipe", e)
+      }
+    }
+      .start()
+
+    return readEnd
   }
 
   fun openVideoStream(assetId: String): ParcelFileDescriptor? {
