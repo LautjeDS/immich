@@ -31,7 +31,8 @@ data class ImmichAsset(
   val durationMillis: Long,
   val isFavorite: Boolean,
   val orientation: Int,
-  val isImage: Boolean
+  val isImage: Boolean,
+  val localId: String?
 )
 
 data class ImmichAlbum(
@@ -280,7 +281,8 @@ object ImmichCloudRepository {
     SELECT r.id, r.type, r.created_at, r.width, r.height,
        r.duration_ms, r.is_favorite,
        COALESCE(e.file_size, 1) AS file_size,
-       COALESCE(e.orientation, '0') AS orientation
+       COALESCE(e.orientation, '0') AS orientation,
+       (SELECT l.id FROM local_asset_entity l WHERE l.checksum = r.checksum LIMIT 1) AS local_id
     FROM remote_asset_entity r
     LEFT JOIN remote_exif_entity e ON e.asset_id = r.id
     WHERE r.visibility = 0 AND r.deleted_at IS NULL
@@ -329,7 +331,8 @@ object ImmichCloudRepository {
     SELECT r.id, r.type, r.created_at, r.width, r.height,
        r.duration_ms, r.is_favorite,
        COALESCE(e.file_size, 1) AS file_size,
-       COALESCE(e.orientation, '0') AS orientation
+       COALESCE(e.orientation, '0') AS orientation,
+       (SELECT l.id FROM local_asset_entity l WHERE l.checksum = r.checksum LIMIT 1) AS local_id
     FROM remote_album_asset_entity raa
     JOIN remote_asset_entity r ON r.id = raa.asset_id
     LEFT JOIN remote_exif_entity e ON e.asset_id = r.id
@@ -374,6 +377,7 @@ object ImmichCloudRepository {
     val isFavorite = c.getInt(6) != 0
     val fileSize = c.getLong(7)
     val orientationStr = c.getString(8)
+    val localId = if (c.isNull(9)) null else c.getString(9)
 
     val isImage = typeInt == 1
     val orientation = orientationStr.toIntOrNull() ?: 0
@@ -404,7 +408,8 @@ object ImmichCloudRepository {
       durationMillis = durationMs,
       isFavorite = isFavorite,
       orientation = orientation,
-      isImage = isImage
+      isImage = isImage,
+      localId = localId
     )
   }
 
@@ -417,7 +422,8 @@ object ImmichCloudRepository {
     SELECT r.id, r.type, r.created_at, r.width, r.height,
        r.duration_ms, r.is_favorite,
        COALESCE(e.file_size, 1) AS file_size,
-       COALESCE(e.orientation, '0') AS orientation
+       COALESCE(e.orientation, '0') AS orientation,
+       (SELECT l.id FROM local_asset_entity l WHERE l.checksum = r.checksum LIMIT 1) AS local_id
     FROM remote_asset_entity r
     LEFT JOIN remote_exif_entity e ON e.asset_id = r.id
     WHERE r.id = ? LIMIT 1

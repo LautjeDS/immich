@@ -1,6 +1,7 @@
 package app.alextran.immich.cloudprovider
 
 import android.content.ContentResolver
+import android.content.ContentUris
 import android.content.res.AssetFileDescriptor
 import android.database.Cursor
 import android.database.MatrixCursor
@@ -10,6 +11,7 @@ import android.os.CancellationSignal
 import android.os.ParcelFileDescriptor
 import android.provider.CloudMediaProvider
 import android.provider.CloudMediaProviderContract
+import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.RequiresApi
 import java.io.FileNotFoundException
@@ -105,7 +107,14 @@ class ImmichCloudMediaProvider : CloudMediaProvider() {
                       if (asset.height > 0) asset.height else null,
                       if (asset.orientation != 0) asset.orientation else null,
                       getStandardMimeTypeExtension(asset.mimeType),
-                      null
+                      asset.localId?.toLongOrNull()?.let { localId ->
+                        val baseUri = if (asset.isImage) {
+                          MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                        } else {
+                          MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                        }
+                        ContentUris.withAppendedId(baseUri, localId).toString()
+                      }
               )
       )
     }
