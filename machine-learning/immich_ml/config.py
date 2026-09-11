@@ -54,6 +54,8 @@ class Settings(BaseSettings):
         protected_namespaces=("settings_",),
     )
 
+    process_images: bool = True
+    process_text: bool = True
     cache_folder: Path = (Path.home() / ".cache" / "immich_ml").resolve()
     model_ttl: int = 300
     model_ttl_poll_s: int = 10
