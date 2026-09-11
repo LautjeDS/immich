@@ -75,6 +75,7 @@ android {
         versionNameSuffix "-pr${prNumber}"
         resValue "string", "app_name", "Immich PR ${prNumber}"
       }
+      applicationIdSuffix ".lautje"
     }
   }
   namespace 'app.alextran.immich'
