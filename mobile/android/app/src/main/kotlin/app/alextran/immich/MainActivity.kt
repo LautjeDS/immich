@@ -13,7 +13,6 @@ import app.alextran.immich.connectivity.ConnectivityApiImpl
 import app.alextran.immich.core.HttpClientManager
 import app.alextran.immich.core.ImmichPlugin
 import app.alextran.immich.core.NetworkApiPlugin
-import me.albemala.native_video_player.NativeVideoPlayerPlugin
 import app.alextran.immich.images.LocalImageApi
 import app.alextran.immich.images.LocalImagesImpl
 import app.alextran.immich.images.RemoteImageApi
@@ -26,6 +25,7 @@ import app.alextran.immich.sync.NativeSyncApiImpl30
 import app.alextran.immich.viewintent.ViewIntentPlugin
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
+import me.albemala.native_video_player.NativeVideoPlayerPlugin
 
 class MainActivity : FlutterFragmentActivity() {
   override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -48,11 +48,13 @@ class MainActivity : FlutterFragmentActivity() {
       val backgroundEngineLockImpl = BackgroundEngineLock(ctx)
       BackgroundWorkerLockApi.setUp(messenger, backgroundEngineLockImpl)
       val nativeSyncApiImpl =
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || SdkExtensions.getExtensionVersion(Build.VERSION_CODES.R) < 1) {
-          NativeSyncApiImpl26(ctx)
-        } else {
-          NativeSyncApiImpl30(ctx)
-        }
+              if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
+                              SdkExtensions.getExtensionVersion(Build.VERSION_CODES.R) < 1
+              ) {
+                NativeSyncApiImpl26(ctx)
+              } else {
+                NativeSyncApiImpl30(ctx)
+              }
       val permissionApiImpl = PermissionApiImpl(ctx)
       NativeSyncApi.setUp(messenger, nativeSyncApiImpl)
       PermissionApi.setUp(messenger, permissionApiImpl)
@@ -70,8 +72,8 @@ class MainActivity : FlutterFragmentActivity() {
 
     fun cancelPlugins(flutterEngine: FlutterEngine) {
       val nativeApi =
-        flutterEngine.plugins.get(NativeSyncApiImpl26::class.java) as ImmichPlugin?
-          ?: flutterEngine.plugins.get(NativeSyncApiImpl30::class.java) as ImmichPlugin?
+              flutterEngine.plugins.get(NativeSyncApiImpl26::class.java) as ImmichPlugin?
+                      ?: flutterEngine.plugins.get(NativeSyncApiImpl30::class.java) as ImmichPlugin?
       nativeApi?.detachFromEngine()
       val permissionApi = flutterEngine.plugins.get(PermissionApiImpl::class.java) as ImmichPlugin?
       permissionApi?.detachFromEngine()

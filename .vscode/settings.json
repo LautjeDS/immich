@@ -60,6 +60,7 @@
     "**/dist/**": true,
     "**/node_modules/**": true
   },
+  "java.configuration.updateBuildConfiguration": "disabled",
   // TODO remove once the ts7 extension is stable
   "js/ts.experimental.useTsgo": true,
   "js/ts.preferences.importModuleSpecifier": "non-relative",
