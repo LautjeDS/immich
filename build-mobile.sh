@@ -1,4 +1,6 @@
 #!/bin/bash
+
+cd mobile
 build(){
   mise //mobile:build:android-apk
 }
