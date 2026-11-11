@@ -15,6 +15,9 @@ config_roots = [
   "native",
 ]
 
+[env]
+C_INCLUDE_PATH = "{{ exec(command='clang -print-resource-dir') }}/include"
+
 [tools]
 node = "24.22.1"
 pnpm = "12.15.0"
